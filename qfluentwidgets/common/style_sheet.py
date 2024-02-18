@@ -207,9 +207,12 @@ class CustomStyleSheet(StyleSheetBase):
 
 class CustomStyleSheetWatcher(QObject):
     """ Custom style sheet watcher """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, *kwargs)
+        self.eventDynamicPropertyChange = QEvent.DynamicPropertyChange
 
     def eventFilter(self, obj: QWidget, e: QEvent):
-        if e.type() != QEvent.DynamicPropertyChange:
+        if e.type() != self.eventDynamicPropertyChange:
             return super().eventFilter(obj, e)
 
         name = e.propertyName().data().decode()
@@ -221,9 +224,12 @@ class CustomStyleSheetWatcher(QObject):
 
 class DirtyStyleSheetWatcher(QObject):
     """ Dirty style sheet watcher """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, *kwargs)
+        self.eventTypePaint = QEvent.Type.Paint
 
     def eventFilter(self, obj: QWidget, e: QEvent):
-        if e.type() != QEvent.Type.Paint or not obj.property('dirty-qss'):
+        if e.type() != self.eventTypePaint or not obj.property('dirty-qss'):
             return super().eventFilter(obj, e)
 
         obj.setProperty('dirty-qss', False)

@@ -2,7 +2,7 @@
 from typing import Union
 import sys
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QIcon, QPainter, QColor
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QApplication
 
@@ -16,7 +16,20 @@ from ..components.navigation import (NavigationInterface, NavigationBar, Navigat
                                      NavigationBarPushButton, NavigationTreeWidget)
 from .stacked_widget import StackedWidget
 
-from qframelesswindow import TitleBar
+from qframelesswindow import TitleBar as TitleBarBase
+
+
+class TitleBar(TitleBarBase):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.eventWindowChange = QEvent.WindowStateChange
+
+    def eventFilter(self, obj, e):
+        if obj is self.window():
+            if e.type() == self.eventWindowChange:
+                self.maxBtn.setMaxState(self.window().isMaximized())
+                return False
+        return False
 
 
 class FluentWindowBase(BackgroundAnimationWidget, FramelessWindow):
@@ -60,7 +73,7 @@ class FluentWindowBase(BackgroundAnimationWidget, FramelessWindow):
         isTransparent = self.stackedWidget.currentWidget().property("isStackedTransparent")
         if bool(self.stackedWidget.property("isTransparent")) == isTransparent:
             return
-        
+
         self.stackedWidget.setProperty("isTransparent", isTransparent)
         self.stackedWidget.setStyle(QApplication.style())
 
@@ -74,12 +87,13 @@ class FluentWindowBase(BackgroundAnimationWidget, FramelessWindow):
         if self.isMicaEffectEnabled():
             self.windowEffect.setMicaEffect(self.winId(), isDarkTheme())
 
-    def paintEvent(self, e):
-        super().paintEvent(e)
-        painter = QPainter(self)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(self.backgroundColor)
-        painter.drawRect(self.rect())
+    # Disable for memory leak
+    # def paintEvent(self, e):
+    #     super().paintEvent(e)
+    #     painter = QPainter(self)
+    #     painter.setPen(Qt.NoPen)
+    #     painter.setBrush(self.backgroundColor)
+    #     painter.drawRect(self.rect())
 
     def setMicaEffectEnabled(self, isEnabled: bool):
         """ set whether the mica effect is enabled, only available on Win11 """
@@ -221,7 +235,7 @@ class FluentWindow(FluentWindowBase):
 
     def resizeEvent(self, e):
         self.titleBar.move(46, 0)
-        self.titleBar.resize(self.width()-46, self.titleBar.height())
+        self.titleBar.resize(self.width() - 46, self.titleBar.height())
 
 
 class MSFluentTitleBar(FluentTitleBar):
@@ -250,7 +264,8 @@ class MSFluentWindow(FluentWindowBase):
         self.titleBar.setAttribute(Qt.WA_StyledBackground)
 
     def addSubInterface(self, interface: QWidget, icon: Union[FluentIconBase, QIcon, str], text: str,
-                        selectedIcon=None, position=NavigationItemPosition.TOP, isTransparent=False) -> NavigationBarPushButton:
+                        selectedIcon=None, position=NavigationItemPosition.TOP,
+                        isTransparent=False) -> NavigationBarPushButton:
         """ add sub interface, the object name of `interface` should be set already
         before calling this method
 
